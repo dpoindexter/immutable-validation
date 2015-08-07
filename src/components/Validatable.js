@@ -1,7 +1,7 @@
-import { Component } from 'react';
+import React from 'react';
 
 function Validatable (validator, contentsOrComponent) {
-    return class extends Component {
+    return class extends React.Component {
         render () {
             const { data, shouldShowMessages } = this.props;
             const validationResult = validator.validate(data);

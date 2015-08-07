@@ -31,7 +31,10 @@
   },
   "devDependencies": {
     "babel-core": "^5.8.20",
+    "esperanto": "^0.7.4",
     "gulp": "^3.9.0",
-    "gulp-babel": "^5.2.0"
+    "gulp-babel": "^5.2.0",
+    "gulp-file": "^0.2.0",
+    "rollup": "^0.12.1"
   }
 }

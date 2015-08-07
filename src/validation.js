@@ -1,19 +1,9 @@
-export function required (val) {
-    return !!val;
-}
+import Validator from './Validator';
+import * as facts from './facts';
+import rule from './rule';
 
-export function minLength (min) {
-    return (val) => val.length >= min;
-}
-
-export function maxLength (max) {
-    return (val) => val.length <= max;
-}
-
-export function between (min, max) {
-    return (val) => {
-        const nVal = parseInt(val, 10);
-        return (nVal >= min && nVal <= max);
-    };
-}
-
+export default {
+    Validator,
+    facts,
+    rule
+};

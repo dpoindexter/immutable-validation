@@ -4,14 +4,14 @@ class Validator {
     constructor () {
         this.ruleSets = [];
 
-        this.validationState = new Map({
+        this.validationState = new Immutable.Map({
             isValid: true,
-            messages: new Map()
+            messages: new Immutable.Map()
         });
     }
 
     ruleFor (propName, accessor, ...rules) {
-        this.validationState = this.validationState.setIn(['messages', propName], new Set());
+        this.validationState = this.validationState.setIn(['messages', propName], new Immutable.Set());
 
         this.ruleSets.push((dataToValidate, validationMessages) => {
             return rules.reduce((allMessages, rule) => {
