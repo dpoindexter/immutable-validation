@@ -3,8 +3,8 @@ var _createClass = (function () { function defineProperties(target, props) { for
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : global.ImmutableValidation = factory();
-})(this, function () {
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('immutable')) : typeof define === 'function' && define.amd ? define(['immutable'], factory) : global.ImmutableValidation = factory(global.Immutable);
+})(this, function (immutable) {
     'use strict';
 
     var facts = Object.defineProperties({}, {
@@ -74,9 +74,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
             this.ruleSets = [];
 
-            this.validationState = new Immutable.Map({
+            this.validationState = new immutable.Map({
                 isValid: true,
-                messages: new Immutable.Map()
+                messages: new immutable.Map()
             });
         }
 
@@ -87,7 +87,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
                     rules[_key - 2] = arguments[_key];
                 }
 
-                this.validationState = this.validationState.setIn(['messages', propName], new Immutable.Set());
+                return rules.length === 1 && Validator.is(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
+            }
+        }, {
+            key: '_addValidatorToRuleSets',
+            value: function _addValidatorToRuleSets(propName, accessor, validator) {
+                this.validationState = this.validationState.setIn(['messages', propName], new immutable.Map());
+
+                this.ruleSets.push(function (dataToValidate, validationMessages) {
+                    var validatorResult = validator.validate(dataToValidate);
+                    return validationMessages.set(propName, validatorResult);
+                });
+
+                return this;
+            }
+        }, {
+            key: '_addRuleSetToRuleSets',
+            value: function _addRuleSetToRuleSets(propName, accessor, rules) {
+                this.validationState = this.validationState.setIn(['messages', propName], new immutable.Set());
 
                 this.ruleSets.push(function (dataToValidate, validationMessages) {
                     return rules.reduce(function (allMessages, rule) {
