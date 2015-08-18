@@ -1,155 +1,272 @@
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory(require("immutable"));
+	else if(typeof define === 'function' && define.amd)
+		define(["immutable"], factory);
+	else if(typeof exports === 'object')
+		exports["ImmutableValidation"] = factory(require("immutable"));
+	else
+		root["ImmutableValidation"] = factory(root["Immutable"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_2__) {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
 
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('immutable')) : typeof define === 'function' && define.amd ? define(['immutable'], factory) : global.ImmutableValidation = factory(global.Immutable);
-})(this, function (immutable) {
-    'use strict';
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
 
-    var facts = Object.defineProperties({}, {
-        required: {
-            get: function get() {
-                return required;
-            },
-            configurable: true,
-            enumerable: true
-        },
-        minLength: {
-            get: function get() {
-                return minLength;
-            },
-            configurable: true,
-            enumerable: true
-        },
-        maxLength: {
-            get: function get() {
-                return maxLength;
-            },
-            configurable: true,
-            enumerable: true
-        },
-        between: {
-            get: function get() {
-                return between;
-            },
-            configurable: true,
-            enumerable: true
-        }
-    });
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
 
-    function rule(fact, message) {
-        return function (val) {
-            var isValid = fact(val);
-            return { isValid: isValid, message: message };
-        };
-    }
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 
-    function required(val) {
-        return !!val;
-    }
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
 
-    function minLength(min) {
-        return function (val) {
-            return val.length >= min;
-        };
-    }
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
 
-    function maxLength(max) {
-        return function (val) {
-            return val.length <= max;
-        };
-    }
 
-    function between(min, max) {
-        return function (val) {
-            var nVal = parseInt(val, 10);
-            return nVal >= min && nVal <= max;
-        };
-    }
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
 
-    var Validator = (function () {
-        function Validator() {
-            _classCallCheck(this, Validator);
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
 
-            this.ruleSets = [];
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
 
-            this.validationState = new immutable.Map({
-                isValid: true,
-                messages: new immutable.Map()
-            });
-        }
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ function(module, exports, __webpack_require__) {
 
-        _createClass(Validator, [{
-            key: 'ruleFor',
-            value: function ruleFor(propName, accessor) {
-                for (var _len = arguments.length, rules = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-                    rules[_key - 2] = arguments[_key];
-                }
+	'use strict';
 
-                return rules.length === 1 && Validator.is(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
-            }
-        }, {
-            key: '_addValidatorToRuleSets',
-            value: function _addValidatorToRuleSets(propName, accessor, validator) {
-                this.validationState = this.validationState.setIn(['messages', propName], new immutable.Map());
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
 
-                this.ruleSets.push(function (dataToValidate, validationMessages) {
-                    var validatorResult = validator.validate(dataToValidate);
-                    return validationMessages.set(propName, validatorResult);
-                });
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj['default'] = obj; return newObj; } }
 
-                return this;
-            }
-        }, {
-            key: '_addRuleSetToRuleSets',
-            value: function _addRuleSetToRuleSets(propName, accessor, rules) {
-                this.validationState = this.validationState.setIn(['messages', propName], new immutable.Set());
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-                this.ruleSets.push(function (dataToValidate, validationMessages) {
-                    return rules.reduce(function (allMessages, rule) {
-                        var messages = allMessages.get(propName);
+	var _Validator = __webpack_require__(1);
 
-                        var val = accessor(dataToValidate);
+	var _Validator2 = _interopRequireDefault(_Validator);
 
-                        var _rule = rule(val);
+	var _facts = __webpack_require__(3);
 
-                        var isValid = _rule.isValid;
-                        var message = _rule.message;
+	var facts = _interopRequireWildcard(_facts);
 
-                        return isValid ? allMessages.set(propName, messages['delete'](message)) : allMessages.set(propName, messages.add(message));
-                    }, validationMessages);
-                });
+	var _rule = __webpack_require__(4);
 
-                return this;
-            }
-        }, {
-            key: 'validate',
-            value: function validate(dataToValidate) {
-                var newMessages = this.ruleSets.reduce(function (messages, ruleSet) {
-                    return ruleSet(dataToValidate, messages);
-                }, this.validationState.get('messages'));
+	var _rule2 = _interopRequireDefault(_rule);
 
-                var isValid = newMessages.every(function (prop) {
-                    return !prop.count();
-                });
+	exports['default'] = {
+	    Validator: _Validator2['default'],
+	    facts: facts,
+	    rule: _rule2['default']
+	};
+	module.exports = exports['default'];
 
-                this.validationState = this.validationState.withMutations(function (vState) {
-                    return vState.set('isValid', isValid).set('messages', newMessages);
-                });
+/***/ },
+/* 1 */
+/***/ function(module, exports, __webpack_require__) {
 
-                return this.validationState;
-            }
-        }]);
+	'use strict';
 
-        return Validator;
-    })();
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
 
-    var validation = {
-        Validator: Validator,
-        facts: facts,
-        rule: rule
-    };
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-    return validation;
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _immutable = __webpack_require__(2);
+
+	var hasProp = Object.prototype.hasOwnProperty;
+
+	var Validator = (function () {
+	    function Validator() {
+	        _classCallCheck(this, Validator);
+
+	        this.ruleSets = [];
+
+	        this.validationState = new _immutable.Map({
+	            isValid: true,
+	            messages: new _immutable.Map()
+	        });
+	    }
+
+	    _createClass(Validator, [{
+	        key: 'ruleFor',
+	        value: function ruleFor(propName, accessor) {
+	            for (var _len = arguments.length, rules = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+	                rules[_key - 2] = arguments[_key];
+	            }
+
+	            return rules.length === 1 && Validator.isInstance(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
+	        }
+	    }, {
+	        key: '_addValidatorToRuleSets',
+	        value: function _addValidatorToRuleSets(propName, accessor, validator) {
+	            this.validationState = this.validationState.setIn(['messages', propName], new _immutable.Map());
+
+	            this.ruleSets.push(function (dataToValidate, validationMessages) {
+	                var val = accessor(dataToValidate, propName);
+	                var validatorResult = validator.validate(val);
+	                return validationMessages.set(propName, validatorResult);
+	            });
+
+	            return this;
+	        }
+	    }, {
+	        key: '_addRuleSetToRuleSets',
+	        value: function _addRuleSetToRuleSets(propName, accessor, rules) {
+	            var _this = this;
+
+	            this.validationState = this.validationState.setIn(['messages', propName], new _immutable.Set());
+
+	            this.ruleSets.push(function (dataToValidate, validationMessages) {
+	                return rules.reduce(function (allMessages, rule) {
+	                    var messages = allMessages.get(propName);
+
+	                    var val = accessor(dataToValidate, propName);
+
+	                    var _runRule2 = _this._runRule(rule, val);
+
+	                    var isValid = _runRule2.isValid;
+	                    var message = _runRule2.message;
+
+	                    return isValid ? allMessages.set(propName, messages['delete'](message)) : allMessages.set(propName, messages.add(message));
+	                }, validationMessages);
+	            });
+
+	            return this;
+	        }
+	    }, {
+	        key: '_runRule',
+	        value: function _runRule(rule, val) {
+	            var result = rule(val);
+	            if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
+	                throw new Error('Validation rules must return a result object with the properties `isValid` and `message`');
+	            }
+	            return result;
+	        }
+	    }, {
+	        key: 'validate',
+	        value: function validate(dataToValidate) {
+	            var newMessages = this.ruleSets.reduce(function (messages, ruleSet) {
+	                return ruleSet(dataToValidate, messages);
+	            }, this.validationState.get('messages'));
+
+	            var isValid = newMessages.every(function (prop) {
+	                return !prop.count();
+	            });
+
+	            this.validationState = this.validationState.withMutations(function (vState) {
+	                return vState.set('isValid', isValid).set('messages', newMessages);
+	            });
+
+	            return this.validationState;
+	        }
+	    }], [{
+	        key: 'isInstance',
+	        value: function isInstance(obj) {
+	            return typeof obj.validate === 'function' && typeof obj.ruleFor === 'function';
+	        }
+	    }, {
+	        key: 'defaultGetter',
+	        value: function defaultGetter(dataToValidate, propName) {
+	            return dataToValidate.get(propName);
+	        }
+	    }]);
+
+	    return Validator;
+	})();
+
+	exports['default'] = Validator;
+	module.exports = exports['default'];
+
+/***/ },
+/* 2 */
+/***/ function(module, exports) {
+
+	module.exports = __WEBPACK_EXTERNAL_MODULE_2__;
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.required = required;
+	exports.minLength = minLength;
+	exports.maxLength = maxLength;
+	exports.between = between;
+
+	function required(val) {
+	    return !!val;
+	}
+
+	function minLength(min) {
+	    return function (val) {
+	        return val.length >= min;
+	    };
+	}
+
+	function maxLength(max) {
+	    return function (val) {
+	        return val.length <= max;
+	    };
+	}
+
+	function between(min, max) {
+	    return function (val) {
+	        var nVal = parseInt(val, 10);
+	        return nVal >= min && nVal <= max;
+	    };
+	}
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports["default"] = rule;
+
+	function rule(fact, message) {
+	    return function (val) {
+	        var isValid = fact(val);
+	        return { isValid: isValid, message: message };
+	    };
+	}
+
+	module.exports = exports["default"];
+
+/***/ }
+/******/ ])
 });
+;

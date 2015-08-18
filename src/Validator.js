@@ -1,5 +1,7 @@
 import { Map, Set } from 'immutable';
 
+const hasProp = Object.prototype.hasOwnProperty;
+
 class Validator {
     constructor () {
         this.ruleSets = [];
@@ -11,7 +13,7 @@ class Validator {
     }
 
     ruleFor (propName, accessor, ...rules) {
-        return (rules.length === 1 && Validator.is(rules[0]))
+        return (rules.length === 1 && Validator.isInstance(rules[0]))
             ? this._addValidatorToRuleSets(propName, accessor, rules[0])
             : this._addRuleSetToRuleSets(propName, accessor, rules);
     }
@@ -20,7 +22,8 @@ class Validator {
         this.validationState = this.validationState.setIn(['messages', propName], new Map());
 
         this.ruleSets.push((dataToValidate, validationMessages) => {
-            const validatorResult = validator.validate(dataToValidate);
+            const val = accessor(dataToValidate, propName);
+            const validatorResult = validator.validate(val);
             return validationMessages.set(propName, validatorResult);
         });
 
@@ -34,8 +37,8 @@ class Validator {
             return rules.reduce((allMessages, rule) => {
                 const messages = allMessages.get(propName);
 
-                const val = accessor(dataToValidate);
-                const { isValid, message } = rule(val);
+                const val = accessor(dataToValidate, propName);
+                const { isValid, message } = this._runRule(rule, val);
 
                 return (isValid)
                     ? allMessages.set(propName, messages.delete(message))
@@ -45,6 +48,14 @@ class Validator {
         });
 
         return this;
+    }
+
+    _runRule (rule, val) {
+        const result = rule(val);
+        if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
+            throw new Error('Validation rules must return a result object with the properties `isValid` and `message`');
+        }
+        return result;
     }
 
     validate (dataToValidate) {
@@ -60,6 +71,14 @@ class Validator {
         });
 
         return this.validationState;
+    }
+
+    static isInstance (obj) {
+        return (typeof obj.validate === 'function' && typeof obj.ruleFor === 'function');
+    }
+
+    static defaultGetter (dataToValidate, propName) {
+        return dataToValidate.get(propName);
     }
 }
 
