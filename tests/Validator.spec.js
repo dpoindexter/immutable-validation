@@ -4,8 +4,6 @@ import rule from '../src/rule';
 import { required } from '../src/facts';
 import Validator from '../src/Validator';
 
-const getter = Validator.defaultGetter;
-
 const personData = Immutable.fromJS({
     firstName: 'John',
     lastName: 'Smith',
@@ -28,7 +26,7 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState).to.include.keys('isValid', 'messages');
+            expect(validationState).to.contain.keys('isValid', 'messages');
         });
 
         it('passes validation when there are no failing rules', () => {
@@ -48,7 +46,7 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState.messages).to.include.keys('firstNameStuff', 'lastNameStuff');
+            expect(validationState.messages).to.contain.keys('firstNameStuff', 'lastNameStuff');
         });
 
         it('fails validation if any rule in a set fails', () => {
@@ -67,7 +65,7 @@ describe('Validator', () => {
             const validationState = personValidator.validate(personData).toJS();
 
             expect(validationState.messages.lastName.length).to.equal(1);
-            expect(validationState.messages.lastName[0]).to.equal('Your last name must start with a P'); 
+            expect(validationState.messages.lastName[0]).to.equal('Your last name must start with a P');
         });
 
         it('fails validation if any rule set contains a failing rule', () => {
@@ -80,6 +78,13 @@ describe('Validator', () => {
             expect(validationState.isValid).to.be.false;
         });
 
+        it('throws when running a rule that does not return a well-formed response', () => {
+            const personValidator = new Validator()
+                .ruleFor('lastName', (p) => p.get('lastName'), (val) => !!val);
+
+            expect(() => personValidator.validate(personData)).to.throw(/Rules must return a result with the properties/);
+        });
+
         it('returns a keyed validationState from nested validators', () => {
             const personValidator = new Validator()
                 .ruleFor('firstName', (p) => p.get('firstName'), fNameRequired)
@@ -89,7 +94,7 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState.messages.address).to.include.keys('isValid', 'messages');
+            expect(validationState.messages.address).to.contain.keys('isValid', 'messages');
         });
 
         it('fails validation if a nested validator fails validation', () => {
@@ -102,6 +107,31 @@ describe('Validator', () => {
             const validationState = personValidator.validate(personData).toJS();
 
             expect(validationState.isValid).to.be.false;
+        });
+    });
+
+    describe('when duck-typing a Validator', () => {
+        it('returns true if the checked object implements `validate` and `ruleFor` methods', () => {
+            const validator = new Validator();
+
+            expect(Validator.isInstance(validator)).to.be.true;
+        });
+
+        it('returns false if the checked object does not implement `validate` or `ruleFor`', () => {
+            const noValidateMethod = {
+                ruleFor () {
+                    return undefined;
+                }
+            };
+
+            const noRuleForMethod = {
+                validate () {
+                    return undefined;
+                }
+            };
+
+            expect(Validator.isInstance(noValidateMethod)).to.be.false;
+            expect(Validator.isInstance(noRuleForMethod)).to.be.false;
         });
     });
 });

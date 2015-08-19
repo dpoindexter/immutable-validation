@@ -4,7 +4,8 @@
   "description": "React form validation using top-down, immutable data",
   "main": "dist",
   "scripts": {
-    "test": "karma start",
+    "test": "node_modules/.bin/karma start",
+    "test:ci": "node_modules/.bin/karma start --no-single-run --browsers Chrome",
     "build": "node_modules/.bin/webpack src/validation.js dist/ImmutableValidation.min.js",
     "build:dev": "node_modules/.bin/webpack src/validation.js dist/ImmutableValidation.js --config webpack.config.dev.js"
   },

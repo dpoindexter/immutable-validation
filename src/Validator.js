@@ -1,4 +1,5 @@
 import { Map, Set } from 'immutable';
+import { isFunction } from './util';
 
 const hasProp = Object.prototype.hasOwnProperty;
 
@@ -53,7 +54,7 @@ class Validator {
     _runRule (rule, val) {
         const result = rule(val);
         if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
-            throw new Error('Validation rules must return a result object with the properties `isValid` and `message`');
+            throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
         }
         return result;
     }
@@ -74,11 +75,7 @@ class Validator {
     }
 
     static isInstance (obj) {
-        return (typeof obj.validate === 'function' && typeof obj.ruleFor === 'function');
-    }
-
-    static defaultGetter (dataToValidate, propName) {
-        return dataToValidate.get(propName);
+        return (isFunction(obj.validate) && isFunction(obj.ruleFor));
     }
 }
 
