@@ -68,11 +68,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _Validator2 = _interopRequireDefault(_Validator);
 
-	var _facts = __webpack_require__(3);
+	var _facts = __webpack_require__(4);
 
 	var facts = _interopRequireWildcard(_facts);
 
-	var _rule = __webpack_require__(4);
+	var _rule = __webpack_require__(5);
 
 	var _rule2 = _interopRequireDefault(_rule);
 
@@ -98,6 +98,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 	var _immutable = __webpack_require__(2);
+
+	var _util = __webpack_require__(3);
 
 	var hasProp = Object.prototype.hasOwnProperty;
 
@@ -164,7 +166,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        value: function _runRule(rule, val) {
 	            var result = rule(val);
 	            if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
-	                throw new Error('Validation rules must return a result object with the properties `isValid` and `message`');
+	                throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
 	            }
 	            return result;
 	        }
@@ -188,12 +190,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }], [{
 	        key: 'isInstance',
 	        value: function isInstance(obj) {
-	            return typeof obj.validate === 'function' && typeof obj.ruleFor === 'function';
-	        }
-	    }, {
-	        key: 'defaultGetter',
-	        value: function defaultGetter(dataToValidate, propName) {
-	            return dataToValidate.get(propName);
+	            return (0, _util.isFunction)(obj.validate) && (0, _util.isFunction)(obj.ruleFor);
 	        }
 	    }]);
 
@@ -211,6 +208,79 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 3 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	exports.identity = identity;
+	exports.noop = noop;
+	exports.toType = toType;
+	exports.isFunction = isFunction;
+	exports.isString = isString;
+	exports.partial = partial;
+	exports.asCallable = asCallable;
+
+	function identity(x) {
+	    return x;
+	}
+
+	function noop() {
+	    return undefined;
+	}
+
+	function toType(obj) {
+	    // IE requires some special-case handling, otherwise returns 'object' for both of the below
+	    if (obj === null) return 'null';
+	    if (obj === undefined) return 'undefined';
+	    // Angus Croll (http://javascriptweblog.wordpress.com/2011/08/08/fixing-the-javascript-typeof-operator)
+	    return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
+	}
+
+	function isFunction(obj) {
+	    return toType(obj) === 'function';
+	}
+
+	function isString(obj) {
+	    return toType(obj) === 'string';
+	}
+
+	function partial(fn) {
+	    for (var _len = arguments.length, argsToApply = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+	        argsToApply[_key - 1] = arguments[_key];
+	    }
+
+	    return function () {
+	        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+	            args[_key2] = arguments[_key2];
+	        }
+
+	        return fn.apply(this, argsToApply.concat(args));
+	    };
+	}
+
+	/**
+	 * Ensures that the given argument can be called as a function:
+	 *
+	 *    var definitelyFn = asCallable(maybeFn);
+	 *    definitelyFn(); // calling maybeFn would throw if maybeFn is not a function
+	 *
+	 * @param {*} maybeFn - value to ensure is callable
+	 * @param {string|function} instead - function to call if maybeFn is not callable, OR the string 'identity' to return the value of maybeFn
+	 * @returns {function}
+	 */
+
+	function asCallable(maybeFn, instead) {
+	    if (isFunction(maybeFn)) return maybeFn;
+	    if (isFunction(instead)) return partial(instead, maybeFn);
+	    if (instead === 'identity') return partial(identity, maybeFn);
+	    return noop;
+	}
+
+/***/ },
+/* 4 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -247,24 +317,34 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 /***/ },
-/* 4 */
-/***/ function(module, exports) {
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
 
-	"use strict";
+	'use strict';
 
-	Object.defineProperty(exports, "__esModule", {
+	Object.defineProperty(exports, '__esModule', {
 	    value: true
 	});
-	exports["default"] = rule;
+	exports['default'] = rule;
+
+	var _util = __webpack_require__(3);
 
 	function rule(fact, message) {
+	    fact = (0, _util.asCallable)(fact, function () {
+	        return true;
+	    });
+	    message = (0, _util.asCallable)(message, function (msg) {
+	        return (0, _util.isString)(msg) ? msg : '';
+	    });
+
 	    return function (val) {
 	        var isValid = fact(val);
-	        return { isValid: isValid, message: message };
+	        var msg = message(val);
+	        return { isValid: isValid, message: msg };
 	    };
 	}
 
-	module.exports = exports["default"];
+	module.exports = exports['default'];
 
 /***/ }
 /******/ ])
