@@ -22,10 +22,37 @@ export function isString (obj) {
     return toType(obj) === 'string';
 }
 
+export function isObject (obj) {
+    return toType(obj) === 'object';
+}
+
 export function partial (fn, ...argsToApply) {
     return function (...args) {
         return fn.apply(this, argsToApply.concat(args));
     };
+}
+
+export function isIterable (maybeIter) {
+    if (!maybeIter || typeof maybeIter !== 'object') return false;
+    return ('length' in maybeIter || ('count' in maybeIter && isFunction(maybeIter.count)));
+}
+
+export function iterableLength (iter) {
+    if (!isIterable(iter)) return 0;
+    if (isFunction(iter.count)) return iter.count();
+    return iter.length;
+}
+
+export function unwrapImmutable (maybeImmutable) {
+    if (!maybeImmutable) return maybeImmutable;
+    if (isFunction(maybeImmutable.toJS)) return maybeImmutable.toJS();
+    return maybeImmutable;
+}
+
+export function get (maybeImmutable, propOrIndex) {
+    if (!maybeImmutable || typeof maybeImmutable !== 'object') return maybeImmutable;
+    if (isFunction(maybeImmutable.get)) return maybeImmutable.get(propOrIndex);
+    return maybeImmutable[propOrIndex];
 }
 
 /**

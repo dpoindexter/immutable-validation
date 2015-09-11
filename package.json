@@ -1,11 +1,11 @@
 {
   "name": "immutable-validation",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "React form validation using top-down, immutable data",
   "main": "dist",
   "scripts": {
     "test": "karma start",
-    "test:ci": "karma start --no-single-run --browsers Chrome",
+    "test:ci": "karma start --no-single-run --browsers Chrome --auto-watch",
     "build": "webpack src/validation.js dist/ImmutableValidation.min.js",
     "build:dev": "webpack src/validation.js dist/ImmutableValidation.js --config webpack.config.dev.js",
     "prepublish": "npm test && npm run build && npm run build:dev"

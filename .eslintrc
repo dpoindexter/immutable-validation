@@ -1,0 +1,41 @@
+{
+  "extends": "eslint:recommended",
+  "root": true,
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "ecmaFeatures": {
+    "modules": true,
+    "jsx": true
+  },
+  "rules": {
+    "no-undef": 2,
+    "no-unused-vars": 2,
+    "quotes": [1, "single"],
+    "strict": [1, "never"],
+    "no-use-before-define": [2, "nofunc"],
+    "curly": [1, "multi-line"],
+    "eol-last": 0,
+    "no-underscore-dangle": 0,
+    "no-extra-bind": 1,
+    "brace-style": [1, "1tbs", { "allowSingleLine": true }],
+    "camelcase": [1, {"properties": "always"}],
+    "func-style": [1, "declaration"],
+    "indent": [1, 4],
+    "space-before-function-paren": [1, "always"],
+    "space-in-parens": [1, "never"],
+    "space-infix-ops": [1, {"int32Hint": false}],
+    "constructor-super": 2,
+    "no-this-before-super": 2,
+    "no-var": 2,
+    "object-shorthand": [1, "always"],
+    "prefer-const": 1,
+    "react/jsx-uses-vars": 1,
+    "react/jsx-curly-spacing": [1, "never"],
+    "react/jsx-quotes": [1, "double", "avoid-escape"]
+  },
+  "plugins": [
+    "react"
+  ]
+}
