@@ -68,9 +68,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _Validator2 = _interopRequireDefault(_Validator);
 
-	var _facts = __webpack_require__(4);
+	var _predicates = __webpack_require__(4);
 
-	var facts = _interopRequireWildcard(_facts);
+	var predicates = _interopRequireWildcard(_predicates);
 
 	var _rule = __webpack_require__(5);
 
@@ -78,7 +78,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	exports['default'] = {
 	    Validator: _Validator2['default'],
-	    facts: facts,
+	    predicates: predicates,
 	    rule: _rule2['default']
 	};
 	module.exports = exports['default'];
@@ -93,7 +93,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: true
 	});
 
+	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
@@ -102,16 +106,95 @@ return /******/ (function(modules) { // webpackBootstrap
 	var _util = __webpack_require__(3);
 
 	var hasProp = Object.prototype.hasOwnProperty;
+	var SELF = 'self';
+
+	function buildRuleReducer(dataToValidate) {
+	    return function (messagesForProp, rule) {
+	        var _runRule = runRule(rule, dataToValidate);
+
+	        var isValid = _runRule.isValid;
+	        var message = _runRule.message;
+
+	        if (!isValid) {
+	            return messagesForProp.add(message);
+	        }
+
+	        return messagesForProp;
+	    };
+	}
+
+	function resultReducer(isValid, _ref) {
+	    var _ref2 = _slicedToArray(_ref, 2);
+
+	    var prop = _ref2[1];
+
+	    if (isValid === false) return false;
+	    if (prop.has('isValid')) return prop.get('isValid');
+	    if (prop.has(SELF) && prop.get(SELF).count()) return false;
+	    return prop.entrySeq().filter(function (_ref3) {
+	        var _ref32 = _slicedToArray(_ref3, 1);
+
+	        var key = _ref32[0];
+	        return key !== 'isValid' && key !== SELF;
+	    }).reduce(resultReducer, isValid);
+	}
+
+	function runRule(rule, val) {
+	    var result = rule(val);
+	    if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
+	        throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
+	    }
+	    return result;
+	}
+
+	function getIterable(propName, accessor, data) {
+	    var iter = accessor(data);
+
+	    if (!(0, _util.isIterable)(iter)) {
+	        throw new TypeError('`' + propName + '` is a non-iterable value. ruleForEach applies a validation rule to each item in an iterable');
+	    }
+
+	    return iter;
+	}
+
+	function setMerged(vState, propName, newData) {
+	    if (vState.has(propName)) {
+	        newData = vState.get(propName).merge(newData);
+	    }
+
+	    return vState.set(propName, (0, _immutable.Map)(newData));
+	}
+
+	var ValidatorWrapper = (function () {
+	    function ValidatorWrapper(chooseValidator) {
+	        _classCallCheck(this, ValidatorWrapper);
+
+	        this.getValidator = chooseValidator;
+	    }
+
+	    _createClass(ValidatorWrapper, [{
+	        key: 'validate',
+	        value: function validate(dataToValidate) {
+	            var v = this.getValidator(dataToValidate);
+
+	            if (!Validator.isInstance(v)) {
+	                return (0, _immutable.Map)({ isValid: true });
+	            }
+
+	            return v.validate(dataToValidate);
+	        }
+	    }]);
+
+	    return ValidatorWrapper;
+	})();
 
 	var Validator = (function () {
 	    function Validator() {
 	        _classCallCheck(this, Validator);
 
 	        this.ruleSets = [];
-
-	        this.validationState = new _immutable.Map({
-	            isValid: true,
-	            messages: new _immutable.Map()
+	        this.validationState = (0, _immutable.Map)({
+	            isValid: true
 	        });
 	    }
 
@@ -122,17 +205,42 @@ return /******/ (function(modules) { // webpackBootstrap
 	                rules[_key - 2] = arguments[_key];
 	            }
 
-	            return rules.length === 1 && Validator.isInstance(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
+	            return Validator.isInstance(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
+	        }
+	    }, {
+	        key: 'ruleForEach',
+	        value: function ruleForEach(propName, accessor) {
+	            for (var _len2 = arguments.length, rules = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+	                rules[_key2 - 2] = arguments[_key2];
+	            }
+
+	            return Validator.isInstance(rules[0]) ? this._addForEachValidatorToRuleSets(propName, accessor, rules[0]) : this._addForEachRuleSetToRuleSets(propName, accessor, rules);
+	        }
+	    }, {
+	        key: 'validate',
+	        value: function validate(dataToValidate) {
+	            var newVState = this.ruleSets.reduce(function (messages, ruleSet) {
+	                return ruleSet(dataToValidate, messages);
+	            }, (0, _immutable.Map)());
+
+	            var isValid = newVState.entrySeq().filter(function (_ref4) {
+	                var _ref42 = _slicedToArray(_ref4, 1);
+
+	                var key = _ref42[0];
+	                return key !== 'isValid';
+	            }).reduce(resultReducer, true);
+
+	            this.validationState = newVState.set('isValid', isValid);
+
+	            return this.validationState;
 	        }
 	    }, {
 	        key: '_addValidatorToRuleSets',
 	        value: function _addValidatorToRuleSets(propName, accessor, validator) {
-	            this.validationState = this.validationState.setIn(['messages', propName], new _immutable.Map());
-
-	            this.ruleSets.push(function (dataToValidate, validationMessages) {
-	                var val = accessor(dataToValidate, propName);
+	            this.ruleSets.push(function (data, vState) {
+	                var val = accessor(data);
 	                var validatorResult = validator.validate(val);
-	                return validationMessages.set(propName, validatorResult);
+	                return setMerged(vState, propName, validatorResult);
 	            });
 
 	            return this;
@@ -140,57 +248,64 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: '_addRuleSetToRuleSets',
 	        value: function _addRuleSetToRuleSets(propName, accessor, rules) {
-	            var _this = this;
-
-	            this.validationState = this.validationState.setIn(['messages', propName], new _immutable.Set());
-
-	            this.ruleSets.push(function (dataToValidate, validationMessages) {
-	                return rules.reduce(function (allMessages, rule) {
-	                    var messages = allMessages.get(propName);
-
-	                    var val = accessor(dataToValidate, propName);
-
-	                    var _runRule2 = _this._runRule(rule, val);
-
-	                    var isValid = _runRule2.isValid;
-	                    var message = _runRule2.message;
-
-	                    return isValid ? allMessages.set(propName, messages['delete'](message)) : allMessages.set(propName, messages.add(message));
-	                }, validationMessages);
+	            this.ruleSets.push(function (data, vState) {
+	                var existing = vState.getIn([propName, SELF]) || (0, _immutable.Set)();
+	                var ruleReducer = buildRuleReducer(accessor(data));
+	                var messages = rules.reduce(ruleReducer, existing);
+	                return vState.set(propName, (0, _immutable.Map)(_defineProperty({}, SELF, messages)));
 	            });
 
 	            return this;
 	        }
 	    }, {
-	        key: '_runRule',
-	        value: function _runRule(rule, val) {
-	            var result = rule(val);
-	            if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
-	                throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
-	            }
-	            return result;
+	        key: '_addForEachValidatorToRuleSets',
+	        value: function _addForEachValidatorToRuleSets(propName, accessor, validator) {
+	            this.ruleSets.push(function (data, vState) {
+	                var iter = getIterable(propName, accessor, data);
+	                var validatorResultMap = (0, _immutable.Map)();
+
+	                for (var i = 0; i < (0, _util.iterableLength)(iter); i++) {
+	                    var validatorResult = validator.validate((0, _util.get)(iter, i));
+	                    validatorResultMap = validatorResultMap.set(i, validatorResult);
+	                }
+
+	                return setMerged(vState, propName, validatorResultMap);
+	            });
+
+	            return this;
 	        }
 	    }, {
-	        key: 'validate',
-	        value: function validate(dataToValidate) {
-	            var newMessages = this.ruleSets.reduce(function (messages, ruleSet) {
-	                return ruleSet(dataToValidate, messages);
-	            }, this.validationState.get('messages'));
+	        key: '_addForEachRuleSetToRuleSets',
+	        value: function _addForEachRuleSetToRuleSets(propName, accessor, rules) {
+	            this.ruleSets.push(function (data, vState) {
+	                var iter = getIterable(propName, accessor, data);
+	                var resultMap = (0, _immutable.Map)();
 
-	            var isValid = newMessages.every(function (prop) {
-	                return !prop.count();
+	                for (var i = 0; i < (0, _util.iterableLength)(iter); i++) {
+	                    var ruleReducer = buildRuleReducer((0, _util.get)(iter, i));
+	                    var itemResult = rules.reduce(ruleReducer, (0, _immutable.Set)());
+	                    resultMap = resultMap.set(i, (0, _immutable.Map)(_defineProperty({}, SELF, itemResult)));
+	                }
+
+	                return setMerged(vState, propName, resultMap);
 	            });
 
-	            this.validationState = this.validationState.withMutations(function (vState) {
-	                return vState.set('isValid', isValid).set('messages', newMessages);
-	            });
-
-	            return this.validationState;
+	            return this;
 	        }
 	    }], [{
 	        key: 'isInstance',
 	        value: function isInstance(obj) {
-	            return (0, _util.isFunction)(obj.validate) && (0, _util.isFunction)(obj.ruleFor);
+	            if (!obj) return false;
+	            return (0, _util.isFunction)(obj.validate);
+	        }
+	    }, {
+	        key: 'which',
+	        value: function which(chooseValidator) {
+	            if (!(0, _util.isFunction)(chooseValidator)) {
+	                throw new TypeError('Call Validator.which with a function returning a validator or null');
+	            }
+
+	            return new ValidatorWrapper(chooseValidator);
 	        }
 	    }]);
 
@@ -220,7 +335,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.toType = toType;
 	exports.isFunction = isFunction;
 	exports.isString = isString;
+	exports.isObject = isObject;
 	exports.partial = partial;
+	exports.isIterable = isIterable;
+	exports.iterableLength = iterableLength;
+	exports.unwrapImmutable = unwrapImmutable;
+	exports.get = get;
 	exports.asCallable = asCallable;
 
 	function identity(x) {
@@ -247,6 +367,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return toType(obj) === 'string';
 	}
 
+	function isObject(obj) {
+	    return toType(obj) === 'object';
+	}
+
 	function partial(fn) {
 	    for (var _len = arguments.length, argsToApply = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
 	        argsToApply[_key - 1] = arguments[_key];
@@ -259,6 +383,29 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        return fn.apply(this, argsToApply.concat(args));
 	    };
+	}
+
+	function isIterable(maybeIter) {
+	    if (!maybeIter || typeof maybeIter !== 'object') return false;
+	    return 'length' in maybeIter || 'count' in maybeIter && isFunction(maybeIter.count);
+	}
+
+	function iterableLength(iter) {
+	    if (!isIterable(iter)) return 0;
+	    if (isFunction(iter.count)) return iter.count();
+	    return iter.length;
+	}
+
+	function unwrapImmutable(maybeImmutable) {
+	    if (!maybeImmutable) return maybeImmutable;
+	    if (isFunction(maybeImmutable.toJS)) return maybeImmutable.toJS();
+	    return maybeImmutable;
+	}
+
+	function get(maybeImmutable, propOrIndex) {
+	    if (!maybeImmutable || typeof maybeImmutable !== 'object') return maybeImmutable;
+	    if (isFunction(maybeImmutable.get)) return maybeImmutable.get(propOrIndex);
+	    return maybeImmutable[propOrIndex];
 	}
 
 	/**
@@ -308,6 +455,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return val.length <= max;
 	    };
 	}
+
+	// TODO: Curried functions
 
 	function between(min, max) {
 	    return function (val) {

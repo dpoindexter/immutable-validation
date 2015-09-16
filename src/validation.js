@@ -1,9 +1,9 @@
 import Validator from './Validator';
-import * as facts from './facts';
+import * as predicates from './predicates';
 import rule from './rule';
 
 export default {
     Validator,
-    facts,
+    predicates,
     rule
 };

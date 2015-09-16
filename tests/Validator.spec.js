@@ -2,7 +2,7 @@
 import { expect } from 'chai';
 import Immutable from 'immutable';
 import rule from '../src/rule';
-import { required } from '../src/facts';
+import { required } from '../src/predicates';
 import Validator from '../src/Validator';
 
 const personData = Immutable.fromJS({

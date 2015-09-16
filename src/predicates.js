@@ -10,6 +10,7 @@ export function maxLength (max) {
     return (val) => val.length <= max;
 }
 
+// TODO: Curried functions
 export function between (min, max) {
     return (val) => {
         const nVal = parseInt(val, 10);
