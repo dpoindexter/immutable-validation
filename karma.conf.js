@@ -54,6 +54,9 @@ module.exports = function(config) {
         }
     },
 
+    webpackServer: {
+      noInfo: true
+    },
 
     // web server port
     port: 9876,

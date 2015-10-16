@@ -1,5 +1,15 @@
+import { isString, isNumber, isBoolean } from './util';
+
 export function required (val) {
-    return !!val;
+    if (!isString(val) && !isNumber(val) && !isBoolean(val)) return false;
+
+    if (isString(val)) {
+        return val.trim().length > 0;
+    }
+
+    if (isNaN(val)) return false;
+
+    return true;
 }
 
 export function minLength (min) {

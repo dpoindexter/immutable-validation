@@ -336,6 +336,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.isFunction = isFunction;
 	exports.isString = isString;
 	exports.isObject = isObject;
+	exports.isNumber = isNumber;
+	exports.isBoolean = isBoolean;
 	exports.partial = partial;
 	exports.isIterable = isIterable;
 	exports.iterableLength = iterableLength;
@@ -369,6 +371,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function isObject(obj) {
 	    return toType(obj) === 'object';
+	}
+
+	function isNumber(obj) {
+	    return toType(obj) === 'number';
+	}
+
+	function isBoolean(obj) {
+	    return toType(obj) === 'boolean';
 	}
 
 	function partial(fn) {
@@ -428,11 +438,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 4 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	"use strict";
+	'use strict';
 
-	Object.defineProperty(exports, "__esModule", {
+	Object.defineProperty(exports, '__esModule', {
 	    value: true
 	});
 	exports.required = required;
@@ -440,8 +450,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.maxLength = maxLength;
 	exports.between = between;
 
+	var _util = __webpack_require__(3);
+
 	function required(val) {
-	    return !!val;
+	    if (!(0, _util.isString)(val) && !(0, _util.isNumber)(val) && !(0, _util.isBoolean)(val)) return false;
+
+	    if ((0, _util.isString)(val)) {
+	        return val.trim().length > 0;
+	    }
+
+	    if (isNaN(val)) return false;
+
+	    return true;
 	}
 
 	function minLength(min) {

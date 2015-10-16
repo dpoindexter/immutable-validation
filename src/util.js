@@ -26,6 +26,14 @@ export function isObject (obj) {
     return toType(obj) === 'object';
 }
 
+export function isNumber (obj) {
+    return toType(obj) === 'number';
+}
+
+export function isBoolean (obj) {
+    return toType(obj) === 'boolean';
+}
+
 export function partial (fn, ...argsToApply) {
     return function (...args) {
         return fn.apply(this, argsToApply.concat(args));
