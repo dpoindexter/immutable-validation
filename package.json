@@ -1,6 +1,6 @@
 {
   "name": "immutable-validation",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "React form validation using top-down, immutable data",
   "main": "dist",
   "scripts": {
