@@ -63,6 +63,10 @@ export function get (maybeImmutable, propOrIndex) {
     return maybeImmutable[propOrIndex];
 }
 
+export function hasProp (o, p) {
+    return Object.prototype.hasOwnProperty.call(o, p);
+}
+
 /**
  * Ensures that the given argument can be called as a function:
  *

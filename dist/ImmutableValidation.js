@@ -68,11 +68,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _Validator2 = _interopRequireDefault(_Validator);
 
-	var _predicates = __webpack_require__(4);
+	var _predicates = __webpack_require__(5);
 
 	var predicates = _interopRequireWildcard(_predicates);
 
-	var _rule = __webpack_require__(5);
+	var _rule = __webpack_require__(6);
 
 	var _rule2 = _interopRequireDefault(_rule);
 
@@ -97,15 +97,22 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 	var _immutable = __webpack_require__(2);
+
+	var _immutable2 = _interopRequireDefault(_immutable);
 
 	var _util = __webpack_require__(3);
 
-	var hasProp = Object.prototype.hasOwnProperty;
+	var _ValidatorWrapper = __webpack_require__(4);
+
+	var _ValidatorWrapper2 = _interopRequireDefault(_ValidatorWrapper);
+
 	var SELF = 'self';
 
 	function buildRuleReducer(dataToValidate) {
@@ -141,13 +148,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function runRule(rule, val) {
 	    var result = rule(val);
-	    if (!hasProp.call(result, 'isValid') || !hasProp.call(result, 'message')) {
+	    if (!(0, _util.hasProp)(result, 'isValid') || !(0, _util.hasProp)(result, 'message')) {
 	        throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
 	    }
 	    return result;
 	}
 
-	function getIterable(propName, accessor, data) {
+	function iterableAccessor(propName, accessor, data) {
 	    var iter = accessor(data);
 
 	    if (!(0, _util.isIterable)(iter)) {
@@ -162,38 +169,65 @@ return /******/ (function(modules) { // webpackBootstrap
 	        newData = vState.get(propName).merge(newData);
 	    }
 
-	    return vState.set(propName, (0, _immutable.Map)(newData));
+	    return vState.set(propName, _immutable2['default'].Map(newData));
 	}
 
-	var ValidatorWrapper = (function () {
-	    function ValidatorWrapper(chooseValidator) {
-	        _classCallCheck(this, ValidatorWrapper);
+	function buildRuleSet(propName, accessor, rules) {
+	    return function (data, vState) {
+	        var existing = vState.getIn([propName, SELF]) || _immutable2['default'].Set();
+	        var ruleReducer = buildRuleReducer(accessor(data));
+	        var messages = rules.reduce(ruleReducer, existing);
+	        return vState.set(propName, _immutable2['default'].Map(_defineProperty({}, SELF, messages)));
+	    };
+	}
 
-	        this.getValidator = chooseValidator;
-	    }
+	function buildRuleSetForValidator(propName, accessor, validator) {
+	    return function (data, vState) {
+	        var val = accessor(data);
+	        var validatorResult = validator.validate(val);
+	        return setMerged(vState, propName, validatorResult);
+	    };
+	}
 
-	    _createClass(ValidatorWrapper, [{
-	        key: 'validate',
-	        value: function validate(dataToValidate) {
-	            var v = this.getValidator(dataToValidate);
+	function buildRuleSetForEachValidator(propName, accessor, validator) {
+	    return function (data, vState) {
+	        var iter = iterableAccessor(propName, accessor, data);
 
-	            if (!Validator.isInstance(v)) {
-	                return (0, _immutable.Map)({ isValid: true });
-	            }
+	        var resultMap = iter.reduce(function (results, item, i) {
+	            var validatorResult = validator.validate(item);
+	            return results.set(i, validatorResult);
+	        }, _immutable2['default'].Map());
 
-	            return v.validate(dataToValidate);
-	        }
-	    }]);
+	        return setMerged(vState, propName, resultMap);
+	    };
+	}
 
-	    return ValidatorWrapper;
-	})();
+	function buildRuleSetForEachItem(propName, accessor, rules) {
+	    return function (data, vState) {
+	        var iter = iterableAccessor(propName, accessor, data);
+
+	        var resultMap = iter.reduce(function (results, item, i) {
+	            var ruleReducer = buildRuleReducer(item);
+	            var itemResult = rules.reduce(ruleReducer, _immutable2['default'].Set());
+	            return results.set(i, _immutable2['default'].Map(_defineProperty({}, SELF, itemResult)));
+	        }, _immutable2['default'].Map());
+
+	        return setMerged(vState, propName, resultMap);
+	    };
+	}
+
+	function extendRuleSets(baseValidator, ruleSet) {
+	    var extendedValidator = new Validator();
+	    extendedValidator.ruleSets = baseValidator.ruleSets.concat(ruleSet);
+	    return extendedValidator;
+	}
 
 	var Validator = (function () {
 	    function Validator() {
 	        _classCallCheck(this, Validator);
 
 	        this.ruleSets = [];
-	        this.validationState = (0, _immutable.Map)({
+	        this.validationState = _immutable2['default'].Map({
 	            isValid: true
 	        });
 	    }
@@ -205,7 +239,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                rules[_key - 2] = arguments[_key];
 	            }
 
-	            return Validator.isInstance(rules[0]) ? this._addValidatorToRuleSets(propName, accessor, rules[0]) : this._addRuleSetToRuleSets(propName, accessor, rules);
+	            var ruleSet = Validator.isInstance(rules[0]) ? buildRuleSetForValidator(propName, accessor, rules[0]) : buildRuleSet(propName, accessor, rules);
+
+	            return extendRuleSets(this, ruleSet);
 	        }
 	    }, {
 	        key: 'ruleForEach',
@@ -214,14 +250,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	                rules[_key2 - 2] = arguments[_key2];
 	            }
 
-	            return Validator.isInstance(rules[0]) ? this._addForEachValidatorToRuleSets(propName, accessor, rules[0]) : this._addForEachRuleSetToRuleSets(propName, accessor, rules);
+	            var ruleSet = Validator.isInstance(rules[0]) ? buildRuleSetForEachValidator(propName, accessor, rules[0]) : buildRuleSetForEachItem(propName, accessor, rules);
+
+	            return extendRuleSets(this, ruleSet);
 	        }
 	    }, {
 	        key: 'validate',
 	        value: function validate(dataToValidate) {
 	            var newVState = this.ruleSets.reduce(function (messages, ruleSet) {
 	                return ruleSet(dataToValidate, messages);
-	            }, (0, _immutable.Map)());
+	            }, _immutable2['default'].Map());
 
 	            var isValid = newVState.entrySeq().filter(function (_ref4) {
 	                var _ref42 = _slicedToArray(_ref4, 1);
@@ -233,64 +271,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this.validationState = newVState.set('isValid', isValid);
 
 	            return this.validationState;
-	        }
-	    }, {
-	        key: '_addValidatorToRuleSets',
-	        value: function _addValidatorToRuleSets(propName, accessor, validator) {
-	            this.ruleSets.push(function (data, vState) {
-	                var val = accessor(data);
-	                var validatorResult = validator.validate(val);
-	                return setMerged(vState, propName, validatorResult);
-	            });
-
-	            return this;
-	        }
-	    }, {
-	        key: '_addRuleSetToRuleSets',
-	        value: function _addRuleSetToRuleSets(propName, accessor, rules) {
-	            this.ruleSets.push(function (data, vState) {
-	                var existing = vState.getIn([propName, SELF]) || (0, _immutable.Set)();
-	                var ruleReducer = buildRuleReducer(accessor(data));
-	                var messages = rules.reduce(ruleReducer, existing);
-	                return vState.set(propName, (0, _immutable.Map)(_defineProperty({}, SELF, messages)));
-	            });
-
-	            return this;
-	        }
-	    }, {
-	        key: '_addForEachValidatorToRuleSets',
-	        value: function _addForEachValidatorToRuleSets(propName, accessor, validator) {
-	            this.ruleSets.push(function (data, vState) {
-	                var iter = getIterable(propName, accessor, data);
-	                var validatorResultMap = (0, _immutable.Map)();
-
-	                for (var i = 0; i < (0, _util.iterableLength)(iter); i++) {
-	                    var validatorResult = validator.validate((0, _util.get)(iter, i));
-	                    validatorResultMap = validatorResultMap.set(i, validatorResult);
-	                }
-
-	                return setMerged(vState, propName, validatorResultMap);
-	            });
-
-	            return this;
-	        }
-	    }, {
-	        key: '_addForEachRuleSetToRuleSets',
-	        value: function _addForEachRuleSetToRuleSets(propName, accessor, rules) {
-	            this.ruleSets.push(function (data, vState) {
-	                var iter = getIterable(propName, accessor, data);
-	                var resultMap = (0, _immutable.Map)();
-
-	                for (var i = 0; i < (0, _util.iterableLength)(iter); i++) {
-	                    var ruleReducer = buildRuleReducer((0, _util.get)(iter, i));
-	                    var itemResult = rules.reduce(ruleReducer, (0, _immutable.Set)());
-	                    resultMap = resultMap.set(i, (0, _immutable.Map)(_defineProperty({}, SELF, itemResult)));
-	                }
-
-	                return setMerged(vState, propName, resultMap);
-	            });
-
-	            return this;
 	        }
 	    }], [{
 	        key: 'isInstance',
@@ -305,7 +285,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                throw new TypeError('Call Validator.which with a function returning a validator or null');
 	            }
 
-	            return new ValidatorWrapper(chooseValidator);
+	            return new _ValidatorWrapper2['default'](chooseValidator);
 	        }
 	    }]);
 
@@ -343,6 +323,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.iterableLength = iterableLength;
 	exports.unwrapImmutable = unwrapImmutable;
 	exports.get = get;
+	exports.hasProp = hasProp;
 	exports.asCallable = asCallable;
 
 	function identity(x) {
@@ -418,6 +399,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return maybeImmutable[propOrIndex];
 	}
 
+	function hasProp(o, p) {
+	    return Object.prototype.hasOwnProperty.call(o, p);
+	}
+
 	/**
 	 * Ensures that the given argument can be called as a function:
 	 *
@@ -438,6 +423,56 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _immutable = __webpack_require__(2);
+
+	var _immutable2 = _interopRequireDefault(_immutable);
+
+	var _Validator = __webpack_require__(1);
+
+	var _Validator2 = _interopRequireDefault(_Validator);
+
+	var ValidatorWrapper = (function () {
+	    function ValidatorWrapper(chooseValidator) {
+	        _classCallCheck(this, ValidatorWrapper);
+
+	        this.getValidator = chooseValidator;
+	    }
+
+	    _createClass(ValidatorWrapper, [{
+	        key: 'validate',
+	        value: function validate(dataToValidate) {
+	            var v = this.getValidator(dataToValidate);
+
+	            if (!_Validator2['default'].isInstance(v)) {
+	                return _immutable2['default'].Map({ isValid: true });
+	            }
+
+	            return v.validate(dataToValidate);
+	        }
+	    }]);
+
+	    return ValidatorWrapper;
+	})();
+
+	exports['default'] = ValidatorWrapper;
+	module.exports = exports['default'];
+
+/***/ },
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -486,7 +521,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -498,8 +533,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _util = __webpack_require__(3);
 
-	function rule(fact, message) {
-	    fact = (0, _util.asCallable)(fact, function () {
+	function rule(predicate, message) {
+	    predicate = (0, _util.asCallable)(predicate, function () {
 	        return true;
 	    });
 	    message = (0, _util.asCallable)(message, function (msg) {
@@ -507,7 +542,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 
 	    return function (val) {
-	        var isValid = fact(val);
+	        var isValid = predicate(val);
 	        var msg = message(val);
 	        return { isValid: isValid, message: msg };
 	    };

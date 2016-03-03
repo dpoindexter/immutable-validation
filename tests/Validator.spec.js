@@ -224,6 +224,24 @@ describe('Validator', () => {
 
     });
 
+    describe('when adding rules', () => {
+
+        it('returns a new validator instance for added rules', () => {
+            const personValidator = new Validator()
+                .ruleFor('firstNameStuff', (p) => p.get('firstName'), fNameRequired);
+
+            const personValidatorWithLastName = personValidator
+                .ruleFor('lastNameStuff', (p) => p.get('lastName'), lNameRequired);
+
+            const vState1 = personValidator.validate(personData).toJS();
+            const vState2 = personValidatorWithLastName.validate(personData).toJS();
+
+            expect(vState1).to.not.contain.keys('lastNameStuff');
+            expect(vState2).to.contain.keys('lastNameStuff');
+        });
+
+    });
+
     describe('when duck-typing a Validator', () => {
         it('returns true if the checked object implements `validate` and `ruleFor` methods', () => {
             const validator = new Validator();
