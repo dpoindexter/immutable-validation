@@ -5,9 +5,11 @@
     "browser": true,
     "es6": true
   },
-  "ecmaFeatures": {
-    "modules": true,
-    "jsx": true
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
   },
   "rules": {
     "no-undef": 2,
@@ -31,11 +33,5 @@
     "no-var": 2,
     "object-shorthand": [1, "always"],
     "prefer-const": 1,
-    "react/jsx-uses-vars": 1,
-    "react/jsx-curly-spacing": [1, "never"],
-    "react/jsx-quotes": [1, "double", "avoid-escape"]
-  },
-  "plugins": [
-    "react"
-  ]
+  }
 }
