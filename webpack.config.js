@@ -1,5 +1,5 @@
-var path = require('path'),
-    webpack = require('webpack');
+var path = require('path');
+var webpack = require('webpack');
 
 module.exports = {
 
@@ -9,12 +9,6 @@ module.exports = {
     },
 
     externals: [{
-        'react': {
-            root: 'React',
-            commonjs2: 'react',
-            commonjs: 'react',
-            amd: 'react'
-        },
         'immutable': {
             root: 'Immutable',
             commonjs2: 'immutable',
@@ -37,14 +31,6 @@ module.exports = {
 
     node: {
         Buffer: false
-    },
-
-    plugins: [
-        new webpack.optimize.UglifyJsPlugin({
-            compressor: {
-                warnings: false
-            }
-        })
-    ]
+    }
 
 };
