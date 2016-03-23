@@ -1,6 +1,5 @@
-/*eslint-env mocha */
 import { expect } from 'chai';
-import { toType } from './../src/util';
+import toType from 'ramda/src/type';
 import { required } from '../src/predicates';
 
 describe('Required predicate', () => {

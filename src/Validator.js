@@ -1,97 +1,116 @@
 import Imm from 'immutable';
-import { isFunction, isIterable, hasProp } from './util';
+import curry from 'ramda/src/curry';
+import pipe from 'ramda/src/pipe';
+import both from 'ramda/src/both';
+import tap from 'ramda/src/tap';
+import { assert, isFunction, isIterable, maybeHas } from './util';
 import ValidatorWrapper from './ValidatorWrapper';
+import ValidationRecord from './ValidationRecord';
 
-const SELF = 'self';
+const MESSAGE = 'message';
+const RULES = 'rules';
+const IS_VALID = 'isValid';
 
-function buildRuleReducer (dataToValidate) {
-    return (messagesForProp, rule) => {
-        const { isValid, message } = runRule(rule, dataToValidate);
+function assertRuleResult (result) {
+    const interfaceErr = new Error(
+        `Rules must return a result with the
+        properties \`isValid\` and \`message\`.
+        Use ImmutableValidation.rule()`
+    );
+    assert(
+        both(maybeHas(IS_VALID), maybeHas(MESSAGE))(result),
+        interfaceErr
+    );
+}
 
-        if (!isValid) {
-            return messagesForProp.add(message);
-        }
+function assertIterable (propName) {
+    const iterableErr = new TypeError(
+        `\`${propName}\` is a non-iterable value.
+        ruleForEach applies a validation rule to
+        each item in an iterable`
+    );
+    return obj => assert(isIterable(obj), iterableErr);
+}
 
-        return messagesForProp;
+const reduceRules = curry((data, messagesForProp, rule) => {
+    const { isValid, message } = tap(assertRuleResult, rule(data));
+    return (!isValid)
+        ? messagesForProp.add(message)
+        : messagesForProp;
+});
+
+const createResult = ValidationRecord.create;
+
+const evaluateRules = curry((rules, data) =>
+    rules.reduce(reduceRules(data), Imm.Set())
+);
+
+const evaluateValidator = curry((validator, data) => 
+    validator.validate(data)
+);
+
+const merge = curry((propName, vState, result) =>
+    result.mergeDeep(vState.rules.get(propName))
+);
+
+const setResult = curry((propName, vState, result) =>
+    vState.set(IS_VALID, vState.isValid && result.isValid)
+          .setIn([RULES, propName], result)
+);
+
+function buildRuleSet (propName, getData, rules) {
+    const evaluateData = evaluateRules(rules);
+    const mergeWithExisting = merge(propName);
+    const setForProp = setResult(propName);
+
+    return (vState, data) => pipe(
+        getData,
+        evaluateData, 
+        createResult,
+        mergeWithExisting(vState),
+        setForProp(vState)
+    )(data);
+}
+
+function buildRuleSetForValidator (propName, getData, validator) {
+    const evaluateData = evaluateValidator(validator);
+    const mergeWithExisting = merge(propName);
+    const setForProp = setResult(propName);
+
+    return (vState, data) => pipe(
+        getData,
+        evaluateData,
+        mergeWithExisting(vState),
+        setForProp(vState)
+    )(data);
+}
+
+function buildRuleSetForEachValidator (propName, getData, validator) {
+    return (vState, data) => {
+        const iter = tap(assertIterable(propName), getData(data));
+
+        const result = iter.reduce((record, item, i) => {
+            return setResult(i, record, validator.validate(item));
+        }, createResult());
+
+        return setResult(propName, vState, result);
     }
 }
 
-function resultReducer (isValid, [ , prop ]) {
-    if (isValid === false) return false;
-    if (prop.has('isValid')) return prop.get('isValid');
-    if (prop.has(SELF) && prop.get(SELF).count()) return false;
-    return prop.entrySeq()
-        .filter(([ key ]) => key !== 'isValid' && key !== SELF)
-        .reduce(resultReducer, isValid);
-}
+function buildRuleSetForEachItem (propName, getData, rules) {
+    const evaluateData = evaluateRules(rules);
 
-function runRule (rule, val) {
-    const result = rule(val);
-    if (!hasProp(result, 'isValid') || !hasProp(result, 'message')) {
-        throw new Error('Rules must return a result with the properties `isValid` and `message`. Use ImmutableValidation.rule()');
-    }
-    return result;
-}
+    return (vState, data) => {
+        const iter = tap(assertIterable(propName), getData(data));
+        const result = iter.reduce((record, item, i) => (
+            pipe(
+                evaluateData,
+                createResult,
+                setResult(i, record)
+            )(item)
+        ), createResult());
 
-function iterableAccessor (propName, accessor, data) {
-    const iter = accessor(data);
-
-    if (!isIterable(iter)) {
-        throw new TypeError(`\`${propName}\` is a non-iterable value. ruleForEach applies a validation rule to each item in an iterable`);               
-    }
-
-    return iter;
-}
-
-function setMerged (vState, propName, newData) {
-    if (vState.has(propName)) {
-        newData = vState.get(propName).merge(newData);
-    }
-
-    return vState.set(propName, Imm.Map(newData));
-}
-
-function buildRuleSet (propName, accessor, rules) {
-    return (data, vState) => {
-        const existing = vState.getIn([ propName, SELF ]) || Imm.Set();
-        const ruleReducer = buildRuleReducer(accessor(data));
-        const messages = rules.reduce(ruleReducer, existing);
-        return vState.set(propName, Imm.Map({ [SELF]: messages }));
-    }
-}
-
-function buildRuleSetForValidator (propName, accessor, validator) {
-    return (data, vState) => {
-        const val = accessor(data);
-        const validatorResult = validator.validate(val);
-        return setMerged(vState, propName, validatorResult);
-    }
-}
-
-function buildRuleSetForEachValidator (propName, accessor, validator) {
-    return (data, vState) => {
-        const iter = iterableAccessor(propName, accessor, data);
-
-        const resultMap = iter.reduce((results, item, i) => {
-            const validatorResult = validator.validate(item);
-            return results.set(i, validatorResult);
-        }, Imm.Map());
-
-        return setMerged(vState, propName, resultMap);
-    }
-}
-
-function buildRuleSetForEachItem (propName, accessor, rules) {
-    return (data, vState) => {
-        const iter = iterableAccessor(propName, accessor, data);
-
-        const resultMap = iter.reduce((results, item, i) => {
-            const ruleReducer = buildRuleReducer(item);
-            const itemResult = rules.reduce(ruleReducer, Imm.Set());
-            return results.set(i, Imm.Map({ [SELF]: itemResult }));
-        }, Imm.Map())
-
-        return setMerged(vState, propName, resultMap);
+        return setResult(propName, vState, result);
     }
 }
 
@@ -126,14 +145,8 @@ class Validator {
     }
 
     validate (dataToValidate) {
-        const newVState = this.ruleSets.reduce((messages, ruleSet) =>
-            ruleSet(dataToValidate, messages), Imm.Map());
-
-        const isValid = newVState.entrySeq()
-            .filter(([ key ]) => key !== 'isValid')
-            .reduce(resultReducer, true);
-
-        this.validationState = newVState.set('isValid', isValid);
+        this.validationState = this.ruleSets.reduce((messages, ruleSet) =>
+            ruleSet(messages, dataToValidate), ValidationRecord.create());
 
         return this.validationState;
     }

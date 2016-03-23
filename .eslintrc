@@ -23,7 +23,7 @@
     "no-extra-bind": 1,
     "brace-style": [1, "1tbs", { "allowSingleLine": true }],
     "camelcase": [1, {"properties": "always"}],
-    "func-style": [1, "declaration"],
+    "func-style": [1, "declaration", { "allowArrowFunctions": true }],
     "indent": [1, 4],
     "space-before-function-paren": [1, "always"],
     "space-in-parens": [1, "never"],

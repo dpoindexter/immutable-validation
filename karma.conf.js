@@ -1,7 +1,8 @@
 // Karma configuration
 // Generated on Mon Aug 17 2015 12:16:46 GMT-0500 (Central Daylight Time)
+/*eslint-env node*/
+/*eslint no-var: 0, indent: [1, 2], space-before-function-paren: 0*/
 var path = require('path');
-var ctx = path.resolve(__dirname, '../');
 
 module.exports = function(config) {
   config.set({
@@ -17,6 +18,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
+      'installImmutableDevtools.js',
       'tests/**/*spec.js'
     ],
 
@@ -28,8 +30,9 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-        'src/**/*.js': ['webpack', 'sourcemap'],
-        'tests/**/*.js': ['webpack', 'sourcemap']
+      'installImmutableDevtools.js': ['webpack'],
+      'src/**/*.js': ['webpack', 'sourcemap'],
+      'tests/**/*.js': ['webpack', 'sourcemap']
     },
 
 
@@ -39,19 +42,20 @@ module.exports = function(config) {
     reporters: ['mocha'],
 
     webpack: {
-        devtool: 'inline-source-map',
-        module: {
-            loaders: [
-                {
-                    test: /\.js$/,
-                    loader: 'babel-loader',
-                    include: [
-                        path.resolve(__dirname, './src'),
-                        path.resolve(__dirname, './tests')
-                    ]
-                }
+      devtool: 'inline-source-map',
+      module: {
+        loaders: [
+          {
+            test: /\.js$/,
+            loader: 'babel-loader',
+            include: [
+              path.resolve(__dirname, './installImmutableDevtools.js'),
+              path.resolve(__dirname, './src'),
+              path.resolve(__dirname, './tests')
             ]
-        }
+          }
+        ]
+      }
     },
 
     webpackServer: {
