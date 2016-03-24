@@ -5,6 +5,7 @@ import hasIn from 'ramda/src/hasIn';
 import both from 'ramda/src/both';
 import is from 'ramda/src/is';
 import either from 'ramda/src/either';
+import isArrayLike from 'ramda/src/isArrayLike';
 
 export function noop () {
     return undefined;
@@ -64,6 +65,10 @@ export function assert (expr, err) {
 export function assertFor (predicate, err, val) {
     assert(predicate(val), err);
     return val;
+}
+
+export function liftToArray (val) {
+    return isArrayLike(val) ? val : [val];
 }
 
 /**
