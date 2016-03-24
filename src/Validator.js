@@ -50,11 +50,11 @@ const evaluateValidator = curry((validator, data) =>
 );
 
 const merge = curry((propName, vState, result) =>
-    result.mergeDeep(vState.rules.get(propName))
+    result.mergeDeep(vState.getIn([RULES, propName]))
 );
 
 const setResult = curry((propName, vState, result) =>
-    vState.set(IS_VALID, vState.isValid && result.isValid)
+    vState.set(IS_VALID, vState.get('isValid') && result.get('isValid'))
           .setIn([RULES, propName], result)
 );
 
