@@ -3,6 +3,24 @@
 /*eslint-env node*/
 /*eslint no-var: 0, indent: [1, 2], space-before-function-paren: 0*/
 var path = require('path');
+var isparta = require('isparta');
+
+var isCi = process.env.CONTINUOUS_INTEGRATION === 'true';
+var runCoverage = process.env.COVERAGE === 'true' || isCi;
+
+var coverageLoaders = [];
+var coverageReporters = [];
+
+if (runCoverage) {
+  coverageLoaders.push({
+    test: /\.js$/,
+    include: path.resolve('src/'),
+    exclude: /tests/,
+    loader: 'isparta'
+  });
+
+  coverageReporters.push('coverage');
+}
 
 module.exports = function(config) {
   config.set({
@@ -39,7 +57,7 @@ module.exports = function(config) {
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['mocha'],
+    reporters: ['mocha'].concat(coverageReporters),
 
     webpack: {
       devtool: 'inline-source-map',
@@ -54,12 +72,23 @@ module.exports = function(config) {
               path.resolve(__dirname, './tests')
             ]
           }
-        ]
+        ].concat(coverageLoaders)
       }
     },
 
     webpackServer: {
       noInfo: true
+    },
+
+    coverageReporter: {
+      // instrumenters: { isparta: isparta },
+      // instrumenter: {
+      //   '**/*.js': 'isparta'
+      // },
+      reporters: [
+        { type: 'html', subdir: 'html' },
+        { type: 'lcovonly', subdir: '.' }
+      ]
     },
 
     // web server port
