@@ -1,4 +1,3 @@
-/*eslint-env mocha */
 import { expect } from 'chai';
 import Immutable from 'immutable';
 import rule from '../src/rule';
@@ -15,15 +14,18 @@ const personData = Immutable.fromJS({
         { type: 'email', value: 'johnsmith_gmail.com' }
     ],
     address: {
-        zipCode: '7870'
+        zipCode: '7870',
+        country: 'US'
     }
 });
+
+const isValidZip = (val) => val.length === 5;
 
 const fNameRequired = rule(required, 'First name is required');
 const lNameRequired = rule(required, 'Last name is required');
 const lNameStartsWithP = rule((val) => val[0] === 'P', 'Your last name must start with a P');
 const zipCodeRequired = rule(required, 'Please enter a ZIP code');
-const zipCodeIsValid = rule((val) => val.length === 5, 'Bad zip code');
+const zipCodeIsValid = rule(isValidZip, 'Bad zip code');
 const phoneNumberIsValid = rule((val) => ('' + val).length === 10, 'Bad phone number');
 const emailIsValid = rule((val) => val.indexOf('@') > 0, 'Bad email address');
 
@@ -38,7 +40,9 @@ const isUsableContactMethod = rule(
 );
 
 describe('Validator', () => {
+
     describe('when validating', () => {
+
         it('returns a validationState object', () => {
             const personValidator = new Validator();
 
@@ -64,7 +68,7 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState).to.contain.keys('firstNameStuff', 'lastNameStuff');
+            expect(validationState.rules).to.contain.keys('firstNameStuff', 'lastNameStuff');
         });
 
         it('returns lists of messages describing failed validation rules for each rule set', () => {
@@ -73,8 +77,9 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState.lastName.self.length).to.equal(1);
-            expect(validationState.lastName.self[0]).to.equal('Your last name must start with a P');
+            expect(validationState.rules.lastName.messages.length).to.equal(1);
+            expect(validationState.rules.lastName.messages[0])
+                .to.equal('Your last name must start with a P');
         });
 
         it('fails validation if any rule in a single set fails', () => {
@@ -106,14 +111,15 @@ describe('Validator', () => {
 
             const validationState = personValidator.validate(personData).toJS();
 
-            expect(validationState.firstName.self.length).to.equal(2);
+            expect(validationState.rules.firstName.messages.length).to.equal(2);
         });
 
         it('throws when running a rule that does not return a well-formed response', () => {
             const personValidator = new Validator()
                 .ruleFor('lastName', (p) => p.get('lastName'), (val) => !!val);
 
-            expect(() => personValidator.validate(personData)).to.throw(/Rules must return a result with the properties/);
+            expect(() => personValidator.validate(personData))
+                .to.throw(/Rules must return a result/);
         });
 
         describe('a nested validator', () => {
@@ -127,7 +133,8 @@ describe('Validator', () => {
 
                 const validationState = personValidator.validate(personData).toJS();
 
-                expect(validationState.address).to.contain.keys('isValid', 'zipCode');
+                expect(validationState.rules.address).to.contain.keys('isValid', 'rules');
+                expect(validationState.rules.address.rules).to.contain.keys('zipCode');
             });
 
             it('fails validation if the nested validator fails', () => {
@@ -142,6 +149,25 @@ describe('Validator', () => {
                 expect(validationState.isValid).to.be.false;
             });
 
+            it('can run both Validators and rulesets for the same property name', () => {
+                const mustHavePostalCodeIfUS = rule((addr) => (
+                    (addr.get('country') === 'US')
+                        ? isValidZip(addr.get('zipCode'))
+                        : true
+                ), 'You need a zip code if you\'re in the US');
+
+                const personValidator = new Validator()
+                    .ruleFor('address', (p) => p.get('address'), mustHavePostalCodeIfUS)
+                    .ruleFor('address', (p) => p.get('address'), new Validator()
+                        .ruleFor('zipCode', (a) => a.get('zipCode'), zipCodeRequired)
+                    );
+
+                const validationState = personValidator.validate(personData).toJS();
+
+                expect(validationState.rules.address.rules).to.contain.keys('zipCode');
+                expect(validationState.rules.address.messages.length).to.equal(1);
+            });
+
         });
 
         describe('using ruleForEach', () => {
@@ -153,7 +179,8 @@ describe('Validator', () => {
                 const validationState = personValidator.validate(personData).toJS();
 
                 expect(validationState.isValid).to.be.false;
-                expect(validationState.foodAllergies[1].self[0]).to.equal('No one is allergic to Raisins');
+                expect(validationState.rules.foodAllergies.rules[1].messages[0])
+                    .to.equal('No one is allergic to Raisins');
             });
 
             it('applies nested validators to every value in an iterable', () => {
@@ -165,14 +192,16 @@ describe('Validator', () => {
                 const validationState = personValidator.validate(personData).toJS();
 
                 expect(validationState.isValid).to.be.false;
-                expect(validationState.contactMethods[1].type.self[0]).to.equal('We can\'t use fax to contact you');
+                expect(validationState.rules.contactMethods.rules[1].rules.type.messages[0])
+                    .to.equal('We can\'t use fax to contact you');
             });
 
             it('throws if the value returned by the accessor function isn\'t iterable', () => {
                 const personValidator = new Validator()
                     .ruleForEach('lastName', (p) => p.get('lastName'), isRealAllergen);
 
-                expect(() => personValidator.validate(personData)).to.throw(/is a non-iterable value/);
+                expect(() => personValidator.validate(personData))
+                    .to.throw(/is a non-iterable value/);
             });
 
         });
@@ -197,8 +226,8 @@ describe('Validator', () => {
 
                 const validationState = personValidator.validate(personData).toJS();
 
-                expect(validationState.contactMethods[0].value.self[0]).to.equal('Bad phone number');
-                expect(validationState.contactMethods[2].value.self[0]).to.equal('Bad email address');
+                expect(validationState.rules.contactMethods.rules[0].rules.value.messages[0]).to.equal('Bad phone number');
+                expect(validationState.rules.contactMethods.rules[2].rules.value.messages[0]).to.equal('Bad email address');
             });
 
             it('does not perform validation if no validator matches', () => {
@@ -211,14 +240,18 @@ describe('Validator', () => {
 
                 const validationState = personValidator.validate(personData).toJS();
 
-                expect(validationState.contactMethods[0].isValid).to.be.true;
-                expect(validationState.contactMethods[1].isValid).to.be.true;
-                expect(validationState.contactMethods[2].isValid).to.be.true;
+                expect(validationState.rules.contactMethods.rules[0].isValid).to.be.true;
+                expect(validationState.rules.contactMethods.rules[1].isValid).to.be.true;
+                expect(validationState.rules.contactMethods.rules[2].isValid).to.be.true;
             });
 
             it('throws if not passed a function as its parameter', () => {
                 expect(() => Validator.which()).to.throw(/a function returning a validator or null/);
             });
+
+        });
+
+        xdescribe('when validating asyncronous rules', () => {
 
         });
 
@@ -236,8 +269,8 @@ describe('Validator', () => {
             const vState1 = personValidator.validate(personData).toJS();
             const vState2 = personValidatorWithLastName.validate(personData).toJS();
 
-            expect(vState1).to.not.contain.keys('lastNameStuff');
-            expect(vState2).to.contain.keys('lastNameStuff');
+            expect(vState1.rules).to.not.contain.keys('lastNameStuff');
+            expect(vState2.rules).to.contain.keys('lastNameStuff');
         });
 
     });
