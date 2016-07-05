@@ -45,12 +45,14 @@ const evaluateRules = curry((rules, data) =>
     rules.reduce(reduceRules(data), Imm.Set())
 );
 
-const evaluateValidator = curry((validator, data) => 
+const evaluateValidator = curry((validator, data) =>
     validator.validate(data)
 );
 
 const merge = curry((propName, vState, result) =>
-    result.mergeDeep(vState.getIn([RULES, propName]))
+    result.mergeDeepWith(
+        (prev, next, key) => key === IS_VALID ? (prev && next) : next,
+        vState.getIn([RULES, propName]))
 );
 
 const setResult = curry((propName, vState, result) =>
@@ -65,7 +67,7 @@ function buildRuleSet (propName, getData, rules) {
 
     return (vState, data) => pipe(
         getData,
-        evaluateData, 
+        evaluateData,
         createResult,
         mergeWithExisting(vState),
         setForProp(vState)

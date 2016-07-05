@@ -175,7 +175,7 @@ describe('Validator', () => {
             it('runs the given rule set for every value in an iterable', () => {
                 const personValidator = new Validator()
                     .ruleForEach('foodAllergies', (p) => p.get('foodAllergies'), isRealAllergen);
-                
+
                 const validationState = personValidator.validate(personData).toJS();
 
                 expect(validationState.isValid).to.be.false;
@@ -188,7 +188,7 @@ describe('Validator', () => {
                     .ruleForEach('contactMethods', (p) => p.get('contactMethods'), new Validator()
                         .ruleFor('type', (c) => c.get('type'), isUsableContactMethod)
                     );
-                
+
                 const validationState = personValidator.validate(personData).toJS();
 
                 expect(validationState.isValid).to.be.false;
@@ -220,7 +220,7 @@ describe('Validator', () => {
                 const personValidator = new Validator()
                     .ruleForEach(
                         'contactMethods',
-                        (p) => p.get('contactMethods'), 
+                        (p) => p.get('contactMethods'),
                         Validator.which((cm) => contactMethodValidators[cm.get('type')])
                     );
 
@@ -234,7 +234,7 @@ describe('Validator', () => {
                 const personValidator = new Validator()
                     .ruleForEach(
                         'contactMethods',
-                        (p) => p.get('contactMethods'), 
+                        (p) => p.get('contactMethods'),
                         Validator.which(() => null)
                     );
 
@@ -271,6 +271,21 @@ describe('Validator', () => {
 
             expect(vState1.rules).to.not.contain.keys('lastNameStuff');
             expect(vState2.rules).to.contain.keys('lastNameStuff');
+        });
+
+        it('allows for multiple rules of the same name', () => {
+            const personValidator = new Validator()
+                .ruleFor('firstNameStuff', (p) => p.get('firstName'), fNameRequired);
+
+            const firstNameFails = personValidator.ruleFor(
+                'firstNameStuff',
+                (p) => p.get('firstName'),
+                rule((p) => false, 'You cannot win'));
+
+            const record = firstNameFails.validate(personData).toJS();
+
+            expect(record.rules.firstNameStuff.messages.length).to.equal(1);
+            expect(record.isValid).to.be.false;
         });
 
     });
